@@ -95,7 +95,7 @@ function Layout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
-            Wenlock Hospital Management System
+            PulseOne: Hospital Resource Management System
           </Typography>
         </Toolbar>
       </AppBar>

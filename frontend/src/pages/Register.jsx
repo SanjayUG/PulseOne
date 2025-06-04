@@ -108,7 +108,7 @@ function Register() {
           }}
         >
           <Typography component="h1" variant="h5">
-            Wenlock Hospital
+            PulseOne
           </Typography>
           <Typography component="h2" variant="h6" sx={{ mt: 2 }}>
             Staff Registration
