@@ -54,36 +54,61 @@ exports.scheduleSurgery = async (req, res) => {
         const { otId } = req.params;
         const { surgeryId, startTime, endTime } = req.body;
 
+        console.log('Scheduling surgery with params:', { otId, surgeryId, startTime, endTime });
+
         const ot = await OperationTheatre.findById(otId);
         if (!ot) {
+            console.log('Operation theatre not found:', otId);
             return res.status(404).json({
                 success: false,
                 message: 'Operation theatre not found'
             });
         }
 
+        console.log('Found operation theatre:', ot);
+
+        // Validate surgery exists
+        const surgery = await Surgery.findById(surgeryId);
+        if (!surgery) {
+            console.log('Surgery not found:', surgeryId);
+            return res.status(404).json({
+                success: false,
+                message: 'Surgery not found'
+            });
+        }
+
+        console.log('Found surgery:', surgery);
+
         // Check for scheduling conflicts
         const hasConflict = ot.schedule.some(schedule => {
+            const scheduleStart = new Date(schedule.startTime);
+            const scheduleEnd = new Date(schedule.endTime);
+            const newStart = new Date(startTime);
+            const newEnd = new Date(endTime);
+
             return (
-                (startTime >= schedule.startTime && startTime < schedule.endTime) ||
-                (endTime > schedule.startTime && endTime <= schedule.endTime)
+                (newStart >= scheduleStart && newStart < scheduleEnd) ||
+                (newEnd > scheduleStart && newEnd <= scheduleEnd)
             );
         });
 
         if (hasConflict) {
+            console.log('Scheduling conflict detected');
             return res.status(400).json({
                 success: false,
                 message: 'Time slot conflicts with existing schedule'
             });
         }
 
+        // Add to schedule
         ot.schedule.push({
             surgeryId,
-            startTime,
-            endTime,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
             status: 'scheduled'
         });
 
+        console.log('Saving operation theatre with new schedule');
         await ot.save();
 
         res.status(201).json({
@@ -92,6 +117,7 @@ exports.scheduleSurgery = async (req, res) => {
             data: ot
         });
     } catch (error) {
+        console.error('Error in scheduleSurgery:', error);
         res.status(500).json({
             success: false,
             message: 'Error scheduling surgery',

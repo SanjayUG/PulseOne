@@ -20,6 +20,8 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,7 +42,16 @@ function Pharmacy() {
     unit: '',
     minimumStock: '',
     expiryDate: '',
+    location: '',
+    batchNumber: '',
+    price: '',
+    supplier: {
+      name: '',
+      contact: '',
+      email: ''
+    }
   });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -51,9 +62,17 @@ function Pharmacy() {
   const fetchData = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/drugs');
-      setDrugs(response.data);
+      if (response.data.success && Array.isArray(response.data.data)) {
+        setDrugs(response.data.data);
+        setError(null);
+      } else {
+        setDrugs([]);
+        setError('Invalid data format received from server');
+      }
     } catch (error) {
       console.error('Error fetching drug data:', error);
+      setError('Failed to fetch drug data');
+      setDrugs([]);
     } finally {
       setLoading(false);
     }
@@ -61,19 +80,40 @@ function Pharmacy() {
 
   const handleCreateDrug = async () => {
     try {
-      await axios.post('http://localhost:5000/api/drugs', newDrug);
-      setOpenDialog(false);
-      setNewDrug({
-        name: '',
-        category: '',
-        quantity: '',
-        unit: '',
-        minimumStock: '',
-        expiryDate: '',
-      });
-      fetchData();
+      // Convert string values to numbers where needed
+      const drugData = {
+        ...newDrug,
+        quantity: Number(newDrug.quantity),
+        minimumStock: Number(newDrug.minimumStock),
+        price: Number(newDrug.price)
+      };
+
+      const response = await axios.post('http://localhost:5000/api/drugs', drugData);
+      if (response.data.success) {
+        setOpenDialog(false);
+        setNewDrug({
+          name: '',
+          category: '',
+          quantity: '',
+          unit: '',
+          minimumStock: '',
+          expiryDate: '',
+          location: '',
+          batchNumber: '',
+          price: '',
+          supplier: {
+            name: '',
+            contact: '',
+            email: ''
+          }
+        });
+        fetchData();
+      } else {
+        setError(response.data.message || 'Failed to create drug');
+      }
     } catch (error) {
       console.error('Error creating drug:', error);
+      setError(error.response?.data?.message || 'Failed to create drug');
     }
   };
 
@@ -222,6 +262,7 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, name: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
@@ -233,6 +274,7 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, category: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
@@ -245,6 +287,7 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, quantity: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
@@ -256,6 +299,7 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, unit: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
@@ -268,6 +312,44 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, minimumStock: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Location"
+              value={editingDrug ? editingDrug.location : newDrug.location}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, location: e.target.value })
+                  : setNewDrug({ ...newDrug, location: e.target.value })
+              }
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Batch Number"
+              value={editingDrug ? editingDrug.batchNumber : newDrug.batchNumber}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, batchNumber: e.target.value })
+                  : setNewDrug({ ...newDrug, batchNumber: e.target.value })
+              }
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Price"
+              type="number"
+              value={editingDrug ? editingDrug.price : newDrug.price}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, price: e.target.value })
+                  : setNewDrug({ ...newDrug, price: e.target.value })
+              }
+              sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
@@ -280,6 +362,42 @@ function Pharmacy() {
                   : setNewDrug({ ...newDrug, expiryDate: e.target.value })
               }
               InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>Supplier Information</Typography>
+            <TextField
+              fullWidth
+              label="Supplier Name"
+              value={editingDrug ? editingDrug.supplier?.name : newDrug.supplier.name}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, supplier: { ...editingDrug.supplier, name: e.target.value } })
+                  : setNewDrug({ ...newDrug, supplier: { ...newDrug.supplier, name: e.target.value } })
+              }
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Supplier Contact"
+              value={editingDrug ? editingDrug.supplier?.contact : newDrug.supplier.contact}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, supplier: { ...editingDrug.supplier, contact: e.target.value } })
+                  : setNewDrug({ ...newDrug, supplier: { ...newDrug.supplier, contact: e.target.value } })
+              }
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Supplier Email"
+              type="email"
+              value={editingDrug ? editingDrug.supplier?.email : newDrug.supplier.email}
+              onChange={(e) =>
+                editingDrug
+                  ? setEditingDrug({ ...editingDrug, supplier: { ...editingDrug.supplier, email: e.target.value } })
+                  : setNewDrug({ ...newDrug, supplier: { ...newDrug.supplier, email: e.target.value } })
+              }
             />
           </Box>
         </DialogContent>
@@ -300,6 +418,19 @@ function Pharmacy() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {error && (
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert onClose={() => setError(null)} severity="error">
+            {error}
+          </Alert>
+        </Snackbar>
+      )}
     </Box>
   );
 }

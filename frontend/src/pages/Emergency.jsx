@@ -20,6 +20,9 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  MenuItem,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -37,10 +40,20 @@ function Emergency() {
     location: '',
     description: '',
     priority: 'high',
+    severity: 'critical',
+    patientId: '',
+    assignedDoctor: '',
+    status: 'active',
+    timestamp: new Date().toISOString()
   });
+  const [error, setError] = useState(null);
+  const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
     fetchData();
+    fetchPatients();
+    fetchDoctors();
     const interval = setInterval(fetchData, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
   }, []);
@@ -48,27 +61,81 @@ function Emergency() {
   const fetchData = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/emergency');
-      setAlerts(response.data);
+      // Ensure we're setting an array, even if empty
+      setAlerts(Array.isArray(response.data) ? response.data : 
+                response.data.data ? response.data.data : 
+                response.data.success ? response.data.data : []);
     } catch (error) {
       console.error('Error fetching emergency data:', error);
+      setAlerts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchPatients = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/patients');
+      if (response.data.success) {
+        setPatients(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/doctors');
+      if (response.data.success) {
+        setDoctors(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+    }
+  };
+
   const handleCreateAlert = async () => {
     try {
-      await axios.post('http://localhost:5000/api/emergency', newAlert);
-      setOpenDialog(false);
-      setNewAlert({
-        type: '',
-        location: '',
-        description: '',
-        priority: 'high',
-      });
-      fetchData();
+      if (!newAlert.type || !newAlert.location || !newAlert.description || !newAlert.patientId || !newAlert.assignedDoctor) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      const severityMap = {
+        high: 'critical',
+        medium: 'severe',
+        low: 'moderate'
+      };
+
+      const alertData = {
+        ...newAlert,
+        severity: severityMap[newAlert.priority] || 'critical',
+        status: 'active',
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await axios.post('http://localhost:5000/api/emergency', alertData);
+      if (response.data.success) {
+        setOpenDialog(false);
+        setNewAlert({
+          type: '',
+          location: '',
+          description: '',
+          priority: 'high',
+          severity: 'critical',
+          patientId: '',
+          assignedDoctor: '',
+          status: 'active',
+          timestamp: new Date().toISOString()
+        });
+        fetchData();
+      } else {
+        setError(response.data.message || 'Failed to create emergency alert');
+      }
     } catch (error) {
       console.error('Error creating emergency alert:', error);
+      setError(error.response?.data?.message || 'Failed to create emergency alert');
     }
   };
 
@@ -178,7 +245,20 @@ function Emergency() {
 
       <Dialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={() => {
+          setOpenDialog(false);
+          setNewAlert({
+            type: '',
+            location: '',
+            description: '',
+            priority: 'high',
+            severity: 'critical',
+            patientId: '',
+            assignedDoctor: '',
+            status: 'active',
+            timestamp: new Date().toISOString()
+          });
+        }}
         maxWidth="sm"
         fullWidth
       >
@@ -186,42 +266,87 @@ function Emergency() {
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <TextField
+              select
+              fullWidth
+              label="Patient"
+              value={newAlert.patientId || ''}
+              onChange={(e) =>
+                setNewAlert({ ...newAlert, patientId: e.target.value })
+              }
+              sx={{ mb: 2 }}
+              required
+            >
+              {patients.map((patient) => (
+                <MenuItem key={patient._id} value={patient._id}>
+                  {patient.name} - {patient.mrn}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              fullWidth
+              label="Assigned Doctor"
+              value={newAlert.assignedDoctor || ''}
+              onChange={(e) =>
+                setNewAlert({ ...newAlert, assignedDoctor: e.target.value })
+              }
+              sx={{ mb: 2 }}
+              required
+            >
+              {doctors.map((doctor) => (
+                <MenuItem key={doctor._id} value={doctor._id}>
+                  Dr. {doctor.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
               fullWidth
               label="Emergency Type"
-              value={newAlert.type}
+              value={newAlert.type || ''}
               onChange={(e) =>
                 setNewAlert({ ...newAlert, type: e.target.value })
               }
               sx={{ mb: 2 }}
-            />
+              required
+            >
+              <MenuItem value="trauma">Trauma</MenuItem>
+              <MenuItem value="cardiac">Cardiac</MenuItem>
+              <MenuItem value="respiratory">Respiratory</MenuItem>
+              <MenuItem value="neurological">Neurological</MenuItem>
+              <MenuItem value="other">Other</MenuItem>
+            </TextField>
             <TextField
               fullWidth
               label="Location"
-              value={newAlert.location}
+              value={newAlert.location || ''}
               onChange={(e) =>
                 setNewAlert({ ...newAlert, location: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               fullWidth
               label="Description"
               multiline
               rows={3}
-              value={newAlert.description}
+              value={newAlert.description || ''}
               onChange={(e) =>
                 setNewAlert({ ...newAlert, description: e.target.value })
               }
               sx={{ mb: 2 }}
+              required
             />
             <TextField
               select
               fullWidth
               label="Priority"
-              value={newAlert.priority}
+              value={newAlert.priority || 'high'}
               onChange={(e) =>
                 setNewAlert({ ...newAlert, priority: e.target.value })
               }
+              required
             >
               <MenuItem value="high">High</MenuItem>
               <MenuItem value="medium">Medium</MenuItem>
@@ -230,12 +355,40 @@ function Emergency() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setOpenDialog(false);
+            setNewAlert({
+              type: '',
+              location: '',
+              description: '',
+              priority: 'high',
+              severity: 'critical',
+              patientId: '',
+              assignedDoctor: '',
+              status: 'active',
+              timestamp: new Date().toISOString()
+            });
+          }}>
+            Cancel
+          </Button>
           <Button onClick={handleCreateAlert} variant="contained" color="error">
             Create Alert
           </Button>
         </DialogActions>
       </Dialog>
+
+      {error && (
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert onClose={() => setError(null)} severity="error">
+            {error}
+          </Alert>
+        </Snackbar>
+      )}
     </Box>
   );
 }

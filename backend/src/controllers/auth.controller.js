@@ -107,4 +107,34 @@ exports.login = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// Verify token and get user
+exports.verify = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                role: user.role,
+                department: user.department,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error verifying token',
+            error: error.message
+        });
+    }
 }; 
