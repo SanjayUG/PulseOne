@@ -1,6 +1,6 @@
-# PulseOne - Hospital Management System
+# HospitAll - Hospital Management System
 
-PulseOne is a modern, full-stack hospital management system built with React and Node.js. It provides a comprehensive solution for managing hospital operations, including patient management, operation theatre scheduling, pharmacy management, and emergency response.
+HospitAll is a modern, full-stack hospital management system built with React and Node.js. It provides a comprehensive solution for managing hospital operations, including patient management, operation theatre scheduling, pharmacy management, and emergency response.
 
 ## 🌟 Features
 
@@ -21,7 +21,7 @@ PulseOne is a modern, full-stack hospital management system built with React and
 ## 🏗️ Project Structure
 
 ```
-PulseOne/
+HospitAll/
 ├── frontend/               # React frontend application
 │   ├── src/
 │   │   ├── components/    # Reusable UI components
@@ -52,8 +52,8 @@ PulseOne/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/PulseOne.git
-cd PulseOne
+git clone https://github.com/yourusername/HospitAll.git
+cd HospitAll
 ```
 
 2. Install frontend dependencies:
@@ -71,7 +71,7 @@ npm install
 4. Create a `.env` file in the backend directory:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/pulseone
+MONGODB_URI=mongodb://localhost:27017/HospitAll
 JWT_SECRET=your_jwt_secret
 ```
 
